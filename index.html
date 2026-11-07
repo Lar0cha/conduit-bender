@@ -41,6 +41,7 @@
 <label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
 <output id="out"></output>
 <svg id="pic" viewBox="0 0 400 250" width="100%" role="img" aria-label="Drawing of the marks and the finished bend"></svg>
+<div id="steps"></div>
 <script src="bend.js"></script>
 <script>
   const $ = id => document.getElementById(id);
@@ -62,13 +63,18 @@
        ${box ? `<rect x="${X(box[0])}" y="${Y(box[2]) + 2}" width="${(box[1] - box[0]) * s}" height="${box[2] * s + 2}" fill="#f2b8a2" stroke="#b5532c"/>` : ""}
        <polyline points="${shape.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" ${pipe}/>`;
   }
+  // Bender marks differ by brand: arrow = start of bend, star = back of 90, notch/teardrop = saddle center.
+  function steps(list) {
+    $("steps").innerHTML = `<h2>How to bend</h2><ol>${list.map(s => `<li>${s}</li>`).join("")}</ol>
+      <p><small>Check the marks on your bender: some brands use different symbols.</small></p>`;
+  }
   function render() {
     const bend = $("bend").value, u = $("unit").value, f = x => `<b>${tape(x, u)}</b>`;
     document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(bend));
     // Every visible number must be > 0 (or >= 0 for fields marked min="0").
     const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")]
       .some(i => !(parseFloat(i.value) > 0 || (i.min === "0" && parseFloat(i.value) === 0)));
-    $("pic").innerHTML = "";
+    $("pic").innerHTML = $("steps").innerHTML = "";
     if (bad) { $("out").textContent = "Enter numbers above 0."; return; }
     const t = x => tape(x, u);
     let r;
@@ -79,18 +85,41 @@
       // No fixed start for an offset, so the drawing puts the first mark one spacing in.
       const d = r.distance;
       draw(3 * d, [[d, "Mark 1"], [2 * d, "Mark 2"]], [[0, 0], [d, 0], [d + run, h], [2 * d + run, h]], null);
+      const a = $("a").value;
+      steps([
+        `Make Mark 1 where the offset should start. Make Mark 2 ${t(d)} past it.`,
+        `Put the conduit in the bender, hook toward the end, <b>arrow on Mark 1</b>. Bend to ${a}°.`,
+        `Slide the conduit forward and <b>roll it over 180°</b> (the first bend points down).`,
+        `<b>Arrow on Mark 2</b>, bend to ${a}°. Sight down the pipe: both bends must be in one line.`,
+        `Check: the ends are parallel and ${t(h)} apart. The run is ${t(r.shrink)} shorter.`,
+      ]);
     } else if (bend === "stub") {
       const h = num("stubH");
       r = stub90(h, $("size").value, u);
       $("out").innerHTML = r.mark > 0
         ? `Mark from end: ${f(r.mark)}<br>Arrow on the mark.<br><small>Take-up ${TAKE_UP[u][$("size").value]} ${u}</small>`
         : "Stub is shorter than the take-up for this size.";
-      if (r.mark > 0) draw(2.5 * h, [[0, "End"], [r.mark, t(r.mark)]], [[0, h], [0, 0], [1.5 * h, 0]], null);
+      if (r.mark > 0) {
+        draw(2.5 * h, [[0, "End"], [r.mark, t(r.mark)]], [[0, h], [0, 0], [1.5 * h, 0]], null);
+        steps([
+          `Measure ${t(r.mark)} from the end of the conduit and mark it.`,
+          `Lay the conduit on the floor in the bender, hook facing the end, <b>arrow on the mark</b>.`,
+          `Keep heavy foot pressure on the heel and pull the handle until the stub is at 90° (check with a level).`,
+          `Check: floor to end of conduit is ${t(h)}.`,
+        ]);
+      }
     } else if (bend === "b2b") {
       const L = num("len"), lead = L / 4;
       r = backToBack(L);
       $("out").innerHTML = `Mark from back of first 90: ${f(r.mark)}<br>Star on the mark, bender facing the other way.`;
       draw(L + 2 * lead, [[lead, "1st 90"], [lead + L, t(L)]], [[0, lead], [0, 0], [L, 0], [L, lead]], null);
+      steps([
+        `Bend the first 90 (use 90° stub-up).`,
+        `From the <b>back</b> (outside) of the first 90, measure ${t(L)} along the pipe and mark it.`,
+        `<b>Turn the bender around</b> so it faces the first stub. Put the <b>star</b> on the mark.`,
+        `Bend to 90°. Both stubs point the same way, in the same plane.`,
+        `Check: outside to outside is ${t(L)}.`,
+      ]);
     } else if (bend === "s3") {
       r = saddle3(num("h"), num("d3"), num("len3"));
       // Center on a whole number for easy marking; side marks stay the same distance from it.
@@ -105,6 +134,14 @@
         draw(r.last * 1.15, [[r.first, t(r.first)], [r.center, t(r.center)], [r.last, t(r.last)]],
           [[0, 0], [r.first, 0], [peak, r.height], [peak + run, 0], [r.last * 1.15 - r.shrink, 0]],
           [d - half, d + half, num("h")]);
+        steps([
+          `Mark the center at ${t(r.center)} and the side marks at ${t(r.first)} and ${t(r.last)}.`,
+          `Put the <b>center mark on the notch</b> (teardrop / saddle mark) of the bender. Bend to <b>45°</b>.`,
+          `<b>Roll the conduit 180°</b> so the hump points down.`,
+          `<b>Arrow on the ${t(r.last)} side mark</b>, bend to 22.5°.`,
+          `Turn the conduit end for end, <b>arrow on the ${t(r.first)} side mark</b>, bend to 22.5°.`,
+          `Sight down the pipe: all three bends in one line. The conduit is ${t(r.shrink)} shorter.`,
+        ]);
       }
     } else {
       const h = num("h"), w = num("w"), d = num("d4"), run = h / tan(num("a"));
@@ -116,6 +153,17 @@
       if (m[0] > 0) draw(end, m.map((x, i) => [x, String(i + 1)]),
         [[0, 0], [m[0], 0], [m[0] + run, h], [m[0] + run + w, h], [m[0] + 2 * run + w, 0], [end - r.shrink, 0]],
         [d, d + w, h]);
+      if (m[0] > 0) {
+        const a = $("a").value;
+        steps([
+          `Make the four marks: ${m.map(t).join(", ")}.`,
+          `<b>Arrow on Mark 1</b>, bend to ${a}°.`,
+          `<b>Roll the conduit 180°</b>, <b>arrow on Mark 2</b>, bend to ${a}°. The first offset is done.`,
+          `Turn the conduit end for end, <b>arrow on Mark 4</b>, bend to ${a}°.`,
+          `<b>Roll it 180°</b>, <b>arrow on Mark 3</b>, bend to ${a}°.`,
+          `Sight down the pipe: all bends in one line. The conduit is ${t(r.shrink)} shorter.`,
+        ]);
+      }
     }
   }
   document.querySelectorAll("input, select").forEach(el => el.addEventListener("input", render));
