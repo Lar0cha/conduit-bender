@@ -33,6 +33,7 @@
   input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
   .check { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 16px; }
   .check input { width: 22px; height: 22px; margin: 0; flex: none; appearance: auto; -webkit-appearance: checkbox; accent-color: var(--accent); }
+  .field { display: flex; gap: 8px; } .field input { flex: 1; min-width: 0; } .frac { flex: none; width: 92px; }
   .row { display: flex; gap: 12px; } .row label { flex: 1; min-width: 0; }
   output { display: block; font-size: 19px; line-height: 1.75; }
   output b { color: var(--accent-text); font-size: 22px; }
@@ -127,7 +128,15 @@
 <script src="bend.js"></script>
 <script>
   const $ = id => document.getElementById(id);
-  const num = id => parseFloat($(id).value);
+  // Each length field gets a 1/8" fraction picker beside it (hidden in mm).
+  document.querySelectorAll("input[type=number]").forEach(i => {
+    const wrap = document.createElement("div"), sel = document.createElement("select");
+    wrap.className = "field"; i.replaceWith(wrap);
+    sel.id = i.id + "F"; sel.className = "frac"; sel.setAttribute("aria-label", "Fraction of an inch");
+    sel.innerHTML = [...Array(8)].map((_, k) => `<option value="${k / 8}">${k ? tape(k / 8, "in").slice(0, -1) : "0"}</option>`).join("");
+    wrap.append(i, sel);
+  });
+  const num = id => (parseFloat($(id).value) || 0) + ($(id + "F") && $("unit").value === "in" ? parseFloat($(id + "F").value) : 0);
   const tan = deg => Math.tan(deg * Math.PI / 180);
   // Top: straight conduit with marks. Bottom: bent shape, drawn to scale (true angles).
   // marks: [[position, label]], shape: [[x, height]], box: obstacle [x0, x1, height] or null.
@@ -184,8 +193,9 @@
     const bend = $("bend").value, u = $("unit").value, f = x => `<b>${tape(x, u)}</b>`;
     document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(bend));
     // Every visible number must be > 0 (or >= 0 for fields marked min="0").
+    document.querySelectorAll(".frac").forEach(s => s.hidden = u === "mm");
     const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input[type=number]")]
-      .some(i => !(parseFloat(i.value) > 0 || (i.min === "0" && parseFloat(i.value) === 0)));
+      .some(i => { const v = num(i.id); return !(v > 0 || (i.min === "0" && v === 0)); });
     $("pic").innerHTML = $("steps").innerHTML = "";
     $("help").innerHTML = HELP[bend].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
     if (bad) { $("out").textContent = "Enter numbers above 0."; return; }
