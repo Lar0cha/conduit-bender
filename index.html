@@ -52,6 +52,9 @@
   .rules { margin: 0; padding-left: 20px; } .rules li { margin-bottom: 10px; }
   .rules span { display: block; font-size: 13px; color: var(--muted); }
   .note { margin: -4px 0 8px; font-size: 14px; color: var(--muted); }
+  .top { max-width: 520px; margin: 12px auto 0; padding: 0 12px; }
+  .top label { margin: 0; } .top select, #pick { background-color: var(--card); }
+  tr.on td { background: color-mix(in srgb, var(--accent) 15%, transparent); font-weight: 600; }
   nav { display: flex; gap: 6px; max-width: 520px; margin: 12px auto 0; padding: 0 12px; }
   nav button { flex: 1; font-family: inherit; font-weight: 600; font-size: 15px; padding: 11px; border-radius: 10px; cursor: pointer;
                border: 1px solid var(--line); background: var(--card); color: var(--muted); }
@@ -61,6 +64,7 @@
 </head>
 <body>
 <header><img src="icon.png" alt=""><div><h1>Conduit Bender</h1><p>Hand-bender calculator</p></div></header>
+<div class="top"><label class="size">Conduit size <select id="size"><option>1/2" EMT</option><option selected>3/4" EMT</option><option>1" EMT</option><option>1-1/4" EMT</option><option>1/2" rigid</option><option>3/4" rigid</option><option>1" rigid</option></select></label></div>
 <nav><button data-tab="calc" aria-current="page">Calculator</button><button data-tab="tables">Tables</button></nav>
 <main id="calc">
 <section class="card">
@@ -75,7 +79,6 @@
   </select></label>
   <label>Units <select id="unit"><option>in</option><option>mm</option></select></label>
 </div>
-<label data-for="offset stub b2b s3 s4">Conduit size <select id="size"><option>1/2" EMT</option><option selected>3/4" EMT</option><option>1" EMT</option><option>1-1/4" EMT</option><option>1/2" rigid</option><option>3/4" rigid</option><option>1" rigid</option></select></label>
 <!-- data-for lists the bends that use each field -->
 <label data-for="offset s3 s4">Height <input id="h" type="number" inputmode="decimal" value="6"></label>
 <label data-for="stub">Stub height <input id="stubH" type="number" inputmode="decimal" value="12"></label>
@@ -96,13 +99,18 @@
 <div id="steps" class="card"></div>
 </main>
 <main id="tables" hidden>
-<section class="card"><h2>90° take-up</h2><p class="note">Subtract from the stub height.</p><table id="tTake"></table></section>
-<section class="card"><h2>Offsets</h2><p class="note">Height × multiplier = distance between marks.</p><table id="tOffset"></table></section>
-<section class="card"><h2>3-point saddle</h2><p class="note">Shrink is added to the center mark. Distance is center to each side mark.</p><table id="tSaddle"></table></section>
-<section class="card"><h2>Offset quick chart</h2><p class="note">Distance between marks for each offset height, by angle.</p><table id="tChart" class="tight"></table></section>
-<section class="card"><h2>Fraction to decimal</h2><table id="tFrac"></table></section>
-<section class="card"><h2>Wire fill: THHN in EMT</h2><p class="note">Max number of same-size wires (NEC Chapter 9, Annex C, Table C.1). Check against your code book edition.</p><table id="tFill" class="tight"></table></section>
-<section class="card"><h2>Code reminders: EMT</h2>
+<label>Table <select id="pick">
+  <option value="take">90° take-up</option><option value="offset">Offsets</option><option value="saddle">3-point saddle</option>
+  <option value="chart">Offset quick chart</option><option value="frac">Fraction to decimal</option>
+  <option value="fill">Wire fill: THHN in EMT</option><option value="code">Code reminders: EMT</option>
+</select></label>
+<section class="card" data-table="take"><h2>90° take-up</h2><p class="note">Subtract from the stub height.</p><table id="tTake"></table></section>
+<section class="card" data-table="offset"><h2>Offsets</h2><p class="note">Height × multiplier = distance between marks.</p><table id="tOffset"></table></section>
+<section class="card" data-table="saddle"><h2>3-point saddle</h2><p class="note">Shrink is added to the center mark. Distance is center to each side mark.</p><table id="tSaddle"></table></section>
+<section class="card" data-table="chart"><h2>Offset quick chart</h2><p class="note">Distance between marks for each offset height, by angle.</p><table id="tChart" class="tight"></table></section>
+<section class="card" data-table="frac"><h2>Fraction to decimal</h2><table id="tFrac"></table></section>
+<section class="card" data-table="fill"><h2>Wire fill: THHN in EMT</h2><p class="note">Max number of same-size wires (NEC Chapter 9, Annex C, Table C.1). Check against your code book edition.</p><table id="tFill" class="tight"></table></section>
+<section class="card" data-table="code"><h2>Code reminders: EMT</h2>
   <ul class="rules">
     <li>No more than <b>360°</b> of bends between pull points (boxes, conduit bodies). <span>NEC 358.26</span></li>
     <li>Strap within <b>3 ft</b> of every box, cabinet or fitting, and at least every <b>10 ft</b>. <span>NEC 358.30</span></li>
@@ -288,6 +296,22 @@
     document.querySelectorAll("nav button").forEach(o => o.toggleAttribute("aria-current", o === b));
     $("calc").hidden = b.dataset.tab !== "calc"; $("tables").hidden = b.dataset.tab !== "tables";
   }));
+  // Remember conduit size and last table between visits (per phone; fine if storage is blocked).
+  const remember = (id, key) => {
+    try { const v = localStorage.getItem(key); if (v && [...$(id).options].some(o => o.value === v)) $(id).value = v; } catch {}
+    $(id).addEventListener("change", () => { try { localStorage.setItem(key, $(id).value); } catch {} });
+  };
+  remember("size", "size"); remember("pick", "table");
+  // Show the picked table; highlight the chosen conduit size in the take-up and fill tables.
+  function showTables() {
+    document.querySelectorAll("[data-table]").forEach(el => el.hidden = el.dataset.table !== $("pick").value);
+    const size = $("size").value, emt = size.replace(" EMT", "");
+    document.querySelectorAll("#tTake tr, #tFill tr").forEach(tr => {
+      const k = tr.cells[0].textContent; tr.classList.toggle("on", k === size || (size.endsWith("EMT") && k === emt));
+    });
+  }
+  ["pick", "size"].forEach(id => $(id).addEventListener("input", showTables));
+  showTables();
   render();
   // Offline support; only runs over https (or localhost), so not when opened as a file.
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
