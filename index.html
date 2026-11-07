@@ -43,7 +43,12 @@
   details { margin-top: 4px; } summary { color: var(--link); cursor: pointer; font-weight: 600; font-size: 15px; }
   details.card summary { color: var(--text); }
   dt { font-weight: 600; margin-top: 10px; } dd { margin: 2px 0 0; font-size: 15px; color: var(--muted); }
-  #tables img { display: block; width: 100%; border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th, td { padding: 9px 6px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  td { white-space: nowrap; } #tSaddle td, #tSaddle th { padding: 9px 3px; }
+  td + td, th + th { text-align: right; } tr:last-child td { border-bottom: 0; }
+  .note { margin: -4px 0 8px; font-size: 14px; color: var(--muted); }
   nav { display: flex; gap: 6px; max-width: 520px; margin: 12px auto 0; padding: 0 12px; }
   nav button { flex: 1; font-family: inherit; font-weight: 600; font-size: 15px; padding: 11px; border-radius: 10px; cursor: pointer;
                border: 1px solid var(--line); background: var(--card); color: var(--muted); }
@@ -88,12 +93,9 @@
 <div id="steps" class="card"></div>
 </main>
 <main id="tables" hidden>
-<section class="card"><h2>90° take-up</h2>
-  <img src="reference-tables/1-compensacion-curva-90.jpg" alt="90° take-up table: 1/2 EMT 5 in, 3/4 EMT and 1/2 rigid 6 in, 1 EMT and 3/4 rigid 8 in, 1-1/4 EMT and 1 rigid 11 in"></section>
-<section class="card"><h2>Offsets</h2>
-  <img src="reference-tables/2-formulas-offsets.jpg" alt="Offset table: multiplier and shrink per inch for 10, 22.5, 30, 45 and 60 degrees"></section>
-<section class="card"><h2>3-point saddle</h2>
-  <img src="reference-tables/3-formulas-saddle-3-curvas.jpg" alt="3-point saddle table: shrink and distance to side marks for 45 and 60 degree center bends"></section>
+<section class="card"><h2>90° take-up</h2><p class="note">Subtract from the stub height.</p><table id="tTake"></table></section>
+<section class="card"><h2>Offsets</h2><p class="note">Height × multiplier = distance between marks.</p><table id="tOffset"></table></section>
+<section class="card"><h2>3-point saddle</h2><p class="note">Shrink is added to the center mark. Distance is center to each side mark.</p><table id="tSaddle"></table></section>
 </main>
 <script src="bend.js"></script>
 <script>
@@ -252,6 +254,12 @@
     }
   }
   document.querySelectorAll("input, select").forEach(el => el.addEventListener("input", render));
+  // Reference tables, built from the same numbers the calculator uses (bend.js).
+  const rows = (head, body) => `<tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>` + body.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("");
+  $("tTake").innerHTML = rows(["Conduit", "Take-up", "mm"], Object.keys(TAKE_UP.in).map(k => [k, tape(TAKE_UP.in[k], "in"), TAKE_UP.mm[k]]));
+  $("tOffset").innerHTML = rows(["Angle", "Multiplier", "Shrink per inch"], Object.keys(OFFSET).sort((a, b) => a - b).map(a => [`${a}°`, OFFSET[a][0], tape(OFFSET[a][1], "in", 16)]));
+  $("tSaddle").innerHTML = rows(["Height", "45° shrink", "45° dist.", "60° shrink", "60° dist."],
+    [1, 2, 3, 4, 5, 6].map(h => [`${h}"`, ...[45, 60].flatMap(c => SADDLE3[c].map(k => tape(k * h, "in", 16)))]));
   document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll("nav button").forEach(o => o.toggleAttribute("aria-current", o === b));
     $("calc").hidden = b.dataset.tab !== "calc"; $("tables").hidden = b.dataset.tab !== "tables";

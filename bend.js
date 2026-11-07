@@ -49,10 +49,11 @@ function saddle4(height, width, dist, angleDeg) {
 }
 
 // Read like a tape: inches to the nearest 1/8" (29.61 → 29 5/8"), mm to the nearest whole mm.
-function tape(x, unit) {
+// step = 16 gives sixteenths, for the reference tables.
+function tape(x, unit, step = 8) {
   if (unit === "mm") return `${Math.round(x)} mm`;
-  const eighths = Math.round(x * 8);
-  let whole = Math.floor(eighths / 8), num = eighths % 8, den = 8;
+  const parts = Math.round(x * step);
+  let whole = Math.floor(parts / step), num = parts % step, den = step;
   while (num && num % 2 === 0) { num /= 2; den /= 2; }
   return num ? `${whole ? whole + " " : ""}${num}/${den}"` : `${whole}"`;
 }
