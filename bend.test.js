@@ -26,6 +26,9 @@ const s60 = saddle3(6, 30, 0, 60);
 near(s60.shrink, 1.5);
 near(s60.last - s60.center, 12);
 near(saddle3(3, 30).shrink, 9 / 16);
+const s30 = saddle3(6, 30, 0, 30); // 30° center: 6 × 1/8 = 3/4" shrink, 6 × 3.9 = 23.4" side
+near(s30.shrink, 0.75);
+near(s30.last - s30.center, 23.4);
 // 4" long obstacle at 45°: center raised by 2·tan(22.5°) = 0.83"
 near(saddle3(2, 30, 4).height, 2.83);
 

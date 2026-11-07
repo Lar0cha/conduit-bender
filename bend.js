@@ -12,7 +12,8 @@ const TAKE_UP = {
 const OFFSET = { 10: [6, 1 / 16], 22.5: [2.6, 3 / 16], 30: [2, 1 / 4], 45: [1.4, 3 / 8], 60: [1.2, 1 / 2] };
 
 // 3-formulas-saddle-3-curvas: per inch of obstacle, [shrink added to center, center to side mark].
-const SADDLE3 = { 45: [3 / 16, 2.5], 60: [1 / 4, 2] };
+// 30° center is not in the table: 15° sides, csc 15° ≈ 3.9" per inch, shrink ≈ 1/8" per inch.
+const SADDLE3 = { 30: [1 / 8, 3.9], 45: [3 / 16, 2.5], 60: [1 / 4, 2] };
 
 // Offset: distance between the two marks and how much the run shrinks.
 function offset(height, angleDeg) {
@@ -31,7 +32,7 @@ function backToBack(length) {
   return { mark: length };
 }
 
-// 3-point saddle, 45° center (22.5° sides) or 60° center (30° sides). dist = conduit end to obstacle center.
+// 3-point saddle, 30°, 45° or 60° center (sides are half). dist = conduit end to obstacle center.
 // length = obstacle length along the run: the pipe slopes down from the peak, so the
 // center is raised by (length/2)·tan(side angle) to clear both edges.
 function saddle3(obstacle, dist, length = 0, centerDeg = 45) {

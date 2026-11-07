@@ -91,7 +91,7 @@
 <label data-for="s4">Obstacle length <input id="w" type="number" inputmode="decimal" value="10"></label>
 <label data-for="s3">Obstacle length (0 for a pipe) <input id="len3" type="number" inputmode="decimal" value="0" min="0"></label>
 <label data-for="s3" class="check"><input type="checkbox" id="round"> Round center to a whole number</label>
-<label data-for="s3">Center bend <select id="c3"><option value="45">45° center, 22.5° sides</option><option value="60">60° center, 30° sides</option></select></label>
+<label data-for="s3">Center bend <select id="c3"><option value="30">30° center, 15° sides</option><option value="45" selected>45° center, 22.5° sides</option><option value="60">60° center, 30° sides</option></select></label>
 <label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
 <details><summary>What do these mean?</summary><dl id="help"></dl></details>
 </section>
@@ -174,10 +174,10 @@
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top of the obstacle."],
       ["Conduit end to obstacle center", "Measure along the run from the end of the conduit to the middle of the obstacle."],
       ["Obstacle length", "How long the obstacle is along the run. Use 0 for a round pipe."],
-      ["Center bend", "45° center with 22.5° sides is the usual one. 60° with 30° sides is shorter and taller."],
+      ["Center bend", "45° center with 22.5° sides is the usual one. 30° with 15° sides is longer and gentler (easier pull). 60° with 30° sides is shorter and taller."],
       ["Round center", "Off: all marks exact. On: only the center mark is rounded to a whole number; the side marks stay exact."],
-      ["Center to each side", "Distance from the exact center to each side mark (2-1/2\" per inch of height at 45°, 2\" at 60°)."],
-      ["Shrink", "From your saddle table (3/16\" per inch at 45°, 1/4\" at 60°). It is already added to the center mark."], SIZE],
+      ["Center to each side", "Distance from the exact center to each side mark (3.9\" per inch of height at 30°, 2-1/2\" at 45°, 2\" at 60°)."],
+      ["Shrink", "From your saddle table (1/8\" per inch at 30°, 3/16\" at 45°, 1/4\" at 60°). It is already added to the center mark."], SIZE],
     s4: [
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top."],
       ["Conduit end to obstacle start", "Measure along the run from the end of the conduit to the near edge of the obstacle."],
@@ -298,8 +298,8 @@
   const rows = (head, body) => `<tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>` + body.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("");
   $("tTake").innerHTML = rows(["Conduit", "Take-up", "mm"], Object.keys(TAKE_UP.in).map(k => [k, tape(TAKE_UP.in[k], "in"), TAKE_UP.mm[k]]));
   $("tOffset").innerHTML = rows(["Angle", "Multiplier", "Shrink per inch"], Object.keys(OFFSET).sort((a, b) => a - b).map(a => [`${a}°`, OFFSET[a][0], tape(OFFSET[a][1], "in", 16)]));
-  $("tSaddle").innerHTML = rows(["Height", "45° shrink", "45° dist.", "60° shrink", "60° dist."],
-    [1, 2, 3, 4, 5, 6].map(h => [`${h}"`, ...[45, 60].flatMap(c => SADDLE3[c].map(k => tape(k * h, "in", 16)))]));
+  $("tSaddle").innerHTML = rows(["Height", "30° shrink", "30° dist.", "45° shrink", "45° dist.", "60° shrink", "60° dist."],
+    [1, 2, 3, 4, 5, 6].map(h => [`${h}"`, ...[30, 45, 60].flatMap(c => SADDLE3[c].map(k => tape(k * h, "in", 16)))]));
   const ANGLES = Object.keys(OFFSET).sort((a, b) => a - b);
   $("tChart").innerHTML = rows(["Height", ...ANGLES.map(a => `${a}°`)],
     [1, 2, 3, 4, 5, 6, 8, 10, 12].map(h => [`${h}"`, ...ANGLES.map(a => tape(h * OFFSET[a][0], "in"))]));
