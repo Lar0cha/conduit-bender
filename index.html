@@ -14,6 +14,8 @@
   input, select { font-size: 20px; width: 100%; padding: 6px; box-sizing: border-box; }
   output { display: block; margin-top: 16px; font-size: 22px; line-height: 1.5; }
   [hidden] { display: none !important; }
+  details { margin-top: 16px; } summary { color: #1a5fb4; cursor: pointer; }
+  dt { font-weight: bold; margin-top: 10px; } dd { margin: 2px 0 0; font-size: 16px; }
   .row { display: flex; gap: 12px; } .row label { flex: 1; }
 </style>
 </head>
@@ -39,6 +41,7 @@
 <label data-for="s4">Obstacle length <input id="w" type="number" inputmode="decimal" value="10"></label>
 <label data-for="s3">Obstacle length (0 for a pipe) <input id="len3" type="number" inputmode="decimal" value="0" min="0"></label>
 <label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
+<details><summary>What do these mean?</summary><dl id="help"></dl></details>
 <output id="out"></output>
 <svg id="pic" viewBox="0 0 400 250" width="100%" role="img" aria-label="Drawing of the marks and the finished bend"></svg>
 <div id="steps"></div>
@@ -49,7 +52,8 @@
   const tan = deg => Math.tan(deg * Math.PI / 180);
   // Top: straight conduit with marks. Bottom: bent shape, drawn to scale (true angles).
   // marks: [[position, label]], shape: [[x, height]], box: obstacle [x0, x1, height] or null.
-  function draw(len, marks, shape, box) {
+  // dim: optional height arrow [x, height, label], drawn from the floor up.
+  function draw(len, marks, shape, box, dim) {
     const maxX = Math.max(len, ...shape.map(p => p[0])), maxY = Math.max(...shape.map(p => p[1]));
     const s = Math.min(370 / maxX, 120 / maxY), X = x => 15 + x * s, Y = y => 228 - y * s;
     const pipe = 'stroke="#888" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"';
@@ -61,8 +65,33 @@
        <text x="15" y="96" font-size="15" fill="#555">After bending</text>
        <line x1="5" y1="${Y(0) + 4}" x2="395" y2="${Y(0) + 4}" stroke="#bbb" stroke-dasharray="4 4"/>
        ${box ? `<rect x="${X(box[0])}" y="${Y(box[2]) + 2}" width="${(box[1] - box[0]) * s}" height="${box[2] * s + 2}" fill="#f2b8a2" stroke="#b5532c"/>` : ""}
-       <polyline points="${shape.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" ${pipe}/>`;
+       <polyline points="${shape.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" ${pipe}/>
+       ${dim ? `<path d="M${X(dim[0]) - 5} ${Y(0)}h10M${X(dim[0])} ${Y(0)}V${Y(dim[1])}M${X(dim[0]) - 5} ${Y(dim[1])}h10" stroke="#1a5fb4" stroke-width="1.5"/>
+         <text x="${X(dim[0]) + 8}" y="${(Y(0) + Y(dim[1])) / 2 + 5}" font-size="15" fill="#1a5fb4">${dim[2]}</text>` : ""}`;
   }
+  const SHRINK = ["Shrink", "How much shorter the conduit ends up after bending, because it goes up and over instead of straight."];
+  const HELP = {
+    offset: [
+      ["Height", "How far the conduit has to move over, e.g. to go from the wall onto a box. Measure from the bottom of the conduit before to the bottom after."],
+      ["Angle", "The angle of both bends. 30° is the most common. Smaller angles make a longer, gentler offset; bigger angles make it shorter and harder to pull wire."],
+      ["Marks apart", "Distance between the two marks on the conduit."], SHRINK],
+    stub: [
+      ["Stub height", "How tall the conduit stands after the 90: from the floor (the back of the bend) up to the end of the conduit."],
+      ["Conduit size", "Picks the take-up. Use the size of the EMT you are bending."],
+      ["Take-up", "How much length the bend uses up. You mark at stub height minus take-up. Check the number stamped on your bender."]],
+    b2b: [
+      ["Outside-to-outside length", "From the outside (back) of the first 90 to the outside of the second 90, e.g. the width of the box or wall you need to wrap."]],
+    s3: [
+      ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top of the obstacle."],
+      ["Conduit end to obstacle center", "Measure along the run from the end of the conduit to the middle of the obstacle."],
+      ["Obstacle length", "How long the obstacle is along the run. Use 0 for a round pipe."],
+      ["Center to each side", "Distance from the center mark to each side mark, if you prefer to measure from the center."], SHRINK],
+    s4: [
+      ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top."],
+      ["Conduit end to obstacle start", "Measure along the run from the end of the conduit to the near edge of the obstacle."],
+      ["Obstacle length", "How long the obstacle is along the run (near edge to far edge)."],
+      ["Angle", "Angle of all four bends. 30° is the most common."], SHRINK],
+  };
   // Bender marks differ by brand: arrow = start of bend, star = back of 90, notch/teardrop = saddle center.
   function steps(list) {
     $("steps").innerHTML = `<h2>How to bend</h2><ol>${list.map(s => `<li>${s}</li>`).join("")}</ol>
@@ -75,6 +104,7 @@
     const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")]
       .some(i => !(parseFloat(i.value) > 0 || (i.min === "0" && parseFloat(i.value) === 0)));
     $("pic").innerHTML = $("steps").innerHTML = "";
+    $("help").innerHTML = HELP[bend].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
     if (bad) { $("out").textContent = "Enter numbers above 0."; return; }
     const t = x => tape(x, u);
     let r;
@@ -84,7 +114,7 @@
       $("out").innerHTML = `Marks apart: ${f(r.distance)}<br>Shrink: ${f(r.shrink)}`;
       // No fixed start for an offset, so the drawing puts the first mark one spacing in.
       const d = r.distance;
-      draw(3 * d, [[d, "Mark 1"], [2 * d, "Mark 2"]], [[0, 0], [d, 0], [d + run, h], [2 * d + run, h]], null);
+      draw(3 * d, [[d, "Mark 1"], [2 * d, "Mark 2"]], [[0, 0], [d, 0], [d + run, h], [2 * d + run, h]], null, [d / 2, h, `Height ${t(h)}`]);
       const a = $("a").value;
       steps([
         `Make Mark 1 where the offset should start. Make Mark 2 ${t(d)} past it.`,
@@ -100,7 +130,7 @@
         ? `Mark from end: ${f(r.mark)}<br>Arrow on the mark.<br><small>Take-up ${TAKE_UP[u][$("size").value]} ${u}</small>`
         : "Stub is shorter than the take-up for this size.";
       if (r.mark > 0) {
-        draw(2.5 * h, [[0, "End"], [r.mark, t(r.mark)]], [[0, h], [0, 0], [1.5 * h, 0]], null);
+        draw(2.5 * h, [[0, "End"], [r.mark, t(r.mark)]], [[0, h], [0, 0], [1.5 * h, 0]], null, [0.25 * h, h, `Stub ${t(h)}`]);
         steps([
           `Measure ${t(r.mark)} from the end of the conduit and mark it.`,
           `Lay the conduit on the floor in the bender, hook facing the end, <b>arrow on the mark</b>.`,
