@@ -126,7 +126,8 @@
       const c = Math.round(r.center);
       r = { ...r, first: r.first + c - r.center, last: r.last + c - r.center, center: c };
       $("out").innerHTML = r.first > 0
-        ? `Side mark: ${f(r.first)} (22.5°)<br>Center: ${f(r.center)} (45°)<br>Side mark: ${f(r.last)} (22.5°)<br>Shrink: ${f(r.shrink)}`
+        ? `Side mark: ${f(r.first)} (22.5°)<br>Center: ${f(r.center)} (45°)<br>Side mark: ${f(r.last)} (22.5°)`
+          + `<br>Center to each side: ${f(r.last - r.center)}<br>Shrink: ${f(r.shrink)}`
           + (num("len3") > 0 ? `<br><small>Center raised to ${tape(r.height, u)} to clear the ends</small>` : "")
         : "Obstacle is too close to the conduit end for this height.";
       if (r.first > 0) {
@@ -135,7 +136,7 @@
           [[0, 0], [r.first, 0], [peak, r.height], [peak + run, 0], [r.last * 1.15 - r.shrink, 0]],
           [d - half, d + half, num("h")]);
         steps([
-          `Mark the center at ${t(r.center)} and the side marks at ${t(r.first)} and ${t(r.last)}.`,
+          `Mark the center at ${t(r.center)}, then measure <b>${t(r.last - r.center)} each way</b> from it for the side marks (${t(r.first)} and ${t(r.last)}).`,
           `Put the <b>center mark on the notch</b> (teardrop / saddle mark) of the bender. Bend to <b>45°</b>.`,
           `<b>Roll the conduit 180°</b> so the hump points down.`,
           `<b>Arrow on the ${t(r.last)} side mark</b>, bend to 22.5°.`,
