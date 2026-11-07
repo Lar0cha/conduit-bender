@@ -26,8 +26,8 @@ On the PC: open `index.html` in a browser. Tests: `node bend.test.js`.
 - `sw.js` — offline cache
 
 ## Notes
-- Take-up uses common EMT values (1/2" = 5", 3/4" = 6", 1" = 8"). Change `TAKE_UP` in `bend.js` if your bender is stamped differently.
-- Saddles use exact geometry, so side marks come out a bit wider than the 2.5× field rule (2.61×).
+- All numbers come from the field tables in `reference-tables/`: 90° take-up (EMT and rigid), offset multipliers and shrink, and the 3-point saddle table (45° and 60° center). They live at the top of `bend.js`.
+- Only the obstacle-length raise on the 3-point saddle uses trig (the tables don't cover it).
 - Live at https://lar0cha.github.io/conduit-bender/
 
 ## Open questions

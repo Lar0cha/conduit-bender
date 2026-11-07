@@ -1,18 +1,23 @@
-// Bend math. Unit-agnostic: pass inches or mm, get the same unit back
-// (except take-up, which comes from the table for the chosen unit).
+// Bend math, using the field tables in reference-tables/. Unit-agnostic: pass inches or mm,
+// get the same unit back (except take-up, which comes from the table for the chosen unit).
 const rad = deg => deg * Math.PI / 180;
 
-// Common EMT hand-bender take-up (deduct). Check against the numbers stamped on your bender.
+// 1-compensacion-curva-90: take-up (deduct) for a 90.
 const TAKE_UP = {
-  in: { '1/2"': 5, '3/4"': 6, '1"': 8 },
-  mm: { '1/2"': 127, '3/4"': 152, '1"': 203 },
+  in: { '1/2" EMT': 5, '3/4" EMT': 6, '1/2" rigid': 6, '1" EMT': 8, '3/4" rigid': 8, '1-1/4" EMT': 11, '1" rigid': 11 },
+  mm: { '1/2" EMT': 127, '3/4" EMT': 152, '1/2" rigid': 152, '1" EMT': 203, '3/4" rigid': 203, '1-1/4" EMT': 279, '1" rigid': 279 },
 };
 
+// 2-formulas-offsets: multiplier and shrink per inch of offset, by bend angle.
+const OFFSET = { 10: [6, 1 / 16], 22.5: [2.6, 3 / 16], 30: [2, 1 / 4], 45: [1.4, 3 / 8], 60: [1.2, 1 / 2] };
+
+// 3-formulas-saddle-3-curvas: per inch of obstacle, [shrink added to center, center to side mark].
+const SADDLE3 = { 45: [3 / 16, 2.5], 60: [1 / 4, 2] };
+
 // Offset: distance between the two marks and how much the run shrinks.
-// Exact trig, so 30° gives multiplier 2.0 and shrink 1/4" per inch like the field tables.
 function offset(height, angleDeg) {
-  const a = rad(angleDeg);
-  return { distance: height / Math.sin(a), shrink: height * Math.tan(a / 2) };
+  const [mult, shrink] = OFFSET[angleDeg];
+  return { distance: height * mult, shrink: height * shrink };
 }
 
 // 90° stub-up: mark measured from the conduit end, arrow on the mark.
@@ -26,14 +31,14 @@ function backToBack(length) {
   return { mark: length };
 }
 
-// 3-point saddle, 45° center and 22.5° sides. dist = conduit end to obstacle center.
+// 3-point saddle, 45° center (22.5° sides) or 60° center (30° sides). dist = conduit end to obstacle center.
 // length = obstacle length along the run: the pipe slopes down from the peak, so the
-// center is raised by (length/2)·tan 22.5° to clear both edges.
-function saddle3(obstacle, dist, length = 0) {
-  const height = obstacle + (length / 2) * Math.tan(rad(22.5));
-  const center = dist + height * Math.tan(rad(11.25));
-  const side = height / Math.sin(rad(22.5));
-  return { first: center - side, center, last: center + side, shrink: 2 * height * Math.tan(rad(11.25)), height };
+// center is raised by (length/2)·tan(side angle) to clear both edges.
+function saddle3(obstacle, dist, length = 0, centerDeg = 45) {
+  const height = obstacle + (length / 2) * Math.tan(rad(centerDeg / 2));
+  const [shrink, side] = SADDLE3[centerDeg].map(k => k * height);
+  const center = dist + shrink;
+  return { first: center - side, center, last: center + side, shrink, height };
 }
 
 // 4-point saddle: two offsets. dist = conduit end to where the obstacle starts.

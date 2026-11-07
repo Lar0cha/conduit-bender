@@ -34,12 +34,13 @@
 <!-- data-for lists the bends that use each field -->
 <label data-for="offset s3 s4">Height <input id="h" type="number" inputmode="decimal" value="6"></label>
 <label data-for="stub">Stub height <input id="stubH" type="number" inputmode="decimal" value="12"></label>
-<label data-for="stub">Conduit size (EMT) <select id="size"><option>1/2"</option><option selected>3/4"</option><option>1"</option></select></label>
+<label data-for="stub">Conduit size <select id="size"><option>1/2" EMT</option><option selected>3/4" EMT</option><option>1" EMT</option><option>1-1/4" EMT</option><option>1/2" rigid</option><option>3/4" rigid</option><option>1" rigid</option></select></label>
 <label data-for="b2b">Outside-to-outside length <input id="len" type="number" inputmode="decimal" value="48"></label>
 <label data-for="s3">Conduit end to obstacle center <input id="d3" type="number" inputmode="decimal" value="30"></label>
 <label data-for="s4">Conduit end to obstacle start <input id="d4" type="number" inputmode="decimal" value="40"></label>
 <label data-for="s4">Obstacle length <input id="w" type="number" inputmode="decimal" value="10"></label>
 <label data-for="s3">Obstacle length (0 for a pipe) <input id="len3" type="number" inputmode="decimal" value="0" min="0"></label>
+<label data-for="s3">Center bend <select id="c3"><option value="45">45° center, 22.5° sides</option><option value="60">60° center, 30° sides</option></select></label>
 <label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
 <details><summary>What do these mean?</summary><dl id="help"></dl></details>
 <output id="out"></output>
@@ -77,7 +78,7 @@
       ["Marks apart", "Distance between the two marks on the conduit."], SHRINK],
     stub: [
       ["Stub height", "How tall the conduit stands after the 90: from the floor (the back of the bend) up to the end of the conduit."],
-      ["Conduit size", "Picks the take-up. Use the size of the EMT you are bending."],
+      ["Conduit size", "Picks the take-up from your 90° table (EMT or rigid)."],
       ["Take-up", "How much length the bend uses up. You mark at stub height minus take-up. Check the number stamped on your bender."]],
     b2b: [
       ["Outside-to-outside length", "From the outside (back) of the first 90 to the outside of the second 90, e.g. the width of the box or wall you need to wrap."]],
@@ -85,7 +86,9 @@
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top of the obstacle."],
       ["Conduit end to obstacle center", "Measure along the run from the end of the conduit to the middle of the obstacle."],
       ["Obstacle length", "How long the obstacle is along the run. Use 0 for a round pipe."],
-      ["Center to each side", "Distance from the center mark to each side mark, if you prefer to measure from the center."], SHRINK],
+      ["Center bend", "45° center with 22.5° sides is the usual one. 60° with 30° sides is shorter and taller."],
+      ["Center to each side", "Distance from the center mark to each side mark (2-1/2\" per inch of height at 45°, 2\" at 60°)."],
+      ["Shrink", "From your saddle table (3/16\" per inch at 45°, 1/4\" at 60°). It is already added to the center mark."]],
     s4: [
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top."],
       ["Conduit end to obstacle start", "Measure along the run from the end of the conduit to the near edge of the obstacle."],
@@ -151,27 +154,28 @@
         `Check: outside to outside is ${t(L)}.`,
       ]);
     } else if (bend === "s3") {
-      r = saddle3(num("h"), num("d3"), num("len3"));
+      const ca = num("c3"), sa = ca / 2;
+      r = saddle3(num("h"), num("d3"), num("len3"), ca);
       // Center on a whole number for easy marking; side marks stay the same distance from it.
       const c = Math.round(r.center);
       r = { ...r, first: r.first + c - r.center, last: r.last + c - r.center, center: c };
       $("out").innerHTML = r.first > 0
-        ? `Side mark: ${f(r.first)} (22.5°)<br>Center: ${f(r.center)} (45°)<br>Side mark: ${f(r.last)} (22.5°)`
-          + `<br>Center to each side: ${f(r.last - r.center)}<br>Shrink: ${f(r.shrink)}`
+        ? `Side mark: ${f(r.first)} (${sa}°)<br>Center: ${f(r.center)} (${ca}°)<br>Side mark: ${f(r.last)} (${sa}°)`
+          + `<br>Center to each side: ${f(r.last - r.center)}<br>Shrink (added to center): ${f(r.shrink)}`
           + (num("len3") > 0 ? `<br><small>Center raised to ${tape(r.height, u)} to clear the ends</small>` : "")
         : "Obstacle is too close to the conduit end for this height.";
       if (r.first > 0) {
-        const run = r.height / tan(22.5), peak = r.first + run, d = num("d3"), half = Math.max(num("len3"), num("h") / 6) / 2;
+        const run = r.height / tan(sa), peak = r.first + run, d = num("d3"), half = Math.max(num("len3"), num("h") / 6) / 2;
         draw(r.last * 1.15, [[r.first, t(r.first)], [r.center, t(r.center)], [r.last, t(r.last)]],
-          [[0, 0], [r.first, 0], [peak, r.height], [peak + run, 0], [r.last * 1.15 - r.shrink, 0]],
+          [[0, 0], [r.first, 0], [peak, r.height], [peak + run, 0], [r.last * 1.15 - 2 * r.shrink, 0]],
           [d - half, d + half, num("h")]);
         steps([
           `Mark the center at ${t(r.center)}, then measure <b>${t(r.last - r.center)} each way</b> from it for the side marks (${t(r.first)} and ${t(r.last)}).`,
-          `Put the <b>center mark on the notch</b> (teardrop / saddle mark) of the bender. Bend to <b>45°</b>.`,
+          `Put the <b>center mark on the notch</b> (teardrop / saddle mark) of the bender. Bend to <b>${ca}°</b>.`,
           `<b>Roll the conduit 180°</b> so the hump points down.`,
-          `<b>Arrow on the ${t(r.last)} side mark</b>, bend to 22.5°.`,
-          `Turn the conduit end for end, <b>arrow on the ${t(r.first)} side mark</b>, bend to 22.5°.`,
-          `Sight down the pipe: all three bends in one line. The conduit is ${t(r.shrink)} shorter.`,
+          `<b>Arrow on the ${t(r.last)} side mark</b>, bend to ${sa}°.`,
+          `Turn the conduit end for end, <b>arrow on the ${t(r.first)} side mark</b>, bend to ${sa}°.`,
+          `Sight down the pipe: all three bends in one line. The ${t(r.shrink)} shrink is already in the center mark.`,
         ]);
       }
     } else {
