@@ -18,6 +18,10 @@ near(s3.center, 30.40); // field: 30.375
 near(s3.last - s3.center, 5.23); // field: 5
 near(s3.center - s3.first, s3.last - s3.center);
 
+// 3-point with a 4" long obstacle: center raised by 2·tan(22.5°) = 0.83"
+near(saddle3(2, 30, 4).height, 2.83);
+near(saddle3(2, 30, 0).center, s3.center);
+
 // 4-point: 4" high, 10" wide, starts 40" in, 30° offsets.
 const s4 = saddle4(4, 10, 40, 30);
 near(s4.marks[1] - s4.marks[0], 8);

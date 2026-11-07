@@ -36,7 +36,8 @@
 <label data-for="b2b">Outside-to-outside length <input id="len" type="number" inputmode="decimal" value="48"></label>
 <label data-for="s3">Conduit end to obstacle center <input id="d3" type="number" inputmode="decimal" value="30"></label>
 <label data-for="s4">Conduit end to obstacle start <input id="d4" type="number" inputmode="decimal" value="40"></label>
-<label data-for="s4">Obstacle width <input id="w" type="number" inputmode="decimal" value="10"></label>
+<label data-for="s4">Obstacle length <input id="w" type="number" inputmode="decimal" value="10"></label>
+<label data-for="s3">Obstacle length (0 for a pipe) <input id="len3" type="number" inputmode="decimal" value="0" min="0"></label>
 <label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
 <output id="out"></output>
 <script src="bend.js"></script>
@@ -46,8 +47,9 @@
   function render() {
     const bend = $("bend").value, u = $("unit").value, f = x => `<b>${tape(x, u)}</b>`;
     document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(bend));
-    // Every visible number must be > 0.
-    const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")].some(i => !(parseFloat(i.value) > 0));
+    // Every visible number must be > 0 (or >= 0 for fields marked min="0").
+    const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")]
+      .some(i => !(parseFloat(i.value) > 0 || (i.min === "0" && parseFloat(i.value) === 0)));
     if (bad) { $("out").textContent = "Enter numbers above 0."; return; }
     let r;
     if (bend === "offset") {
@@ -62,12 +64,13 @@
       r = backToBack(num("len"));
       $("out").innerHTML = `Mark from back of first 90: ${f(r.mark)}<br>Star on the mark, bender facing the other way.`;
     } else if (bend === "s3") {
-      r = saddle3(num("h"), num("d3"));
+      r = saddle3(num("h"), num("d3"), num("len3"));
       // Center on a whole number for easy marking; side marks stay the same distance from it.
       const c = Math.round(r.center);
       r = { ...r, first: r.first + c - r.center, last: r.last + c - r.center, center: c };
       $("out").innerHTML = r.first > 0
         ? `Side mark: ${f(r.first)} (22.5°)<br>Center: ${f(r.center)} (45°)<br>Side mark: ${f(r.last)} (22.5°)<br>Shrink: ${f(r.shrink)}`
+          + (num("len3") > 0 ? `<br><small>Center raised to ${tape(r.height, u)} to clear the ends</small>` : "")
         : "Obstacle is too close to the conduit end for this height.";
     } else {
       r = saddle4(num("h"), num("w"), num("d4"), num("a"));

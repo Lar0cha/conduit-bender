@@ -27,10 +27,13 @@ function backToBack(length) {
 }
 
 // 3-point saddle, 45° center and 22.5° sides. dist = conduit end to obstacle center.
-function saddle3(height, dist) {
+// length = obstacle length along the run: the pipe slopes down from the peak, so the
+// center is raised by (length/2)·tan 22.5° to clear both edges.
+function saddle3(obstacle, dist, length = 0) {
+  const height = obstacle + (length / 2) * Math.tan(rad(22.5));
   const center = dist + height * Math.tan(rad(11.25));
   const side = height / Math.sin(rad(22.5));
-  return { first: center - side, center, last: center + side, shrink: 2 * height * Math.tan(rad(11.25)) };
+  return { first: center - side, center, last: center + side, shrink: 2 * height * Math.tan(rad(11.25)), height };
 }
 
 // 4-point saddle: two offsets. dist = conduit end to where the obstacle starts.
