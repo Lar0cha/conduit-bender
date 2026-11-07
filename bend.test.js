@@ -28,6 +28,8 @@ assert.strictEqual(tape(29.61, "in"), '29 5/8"');
 assert.strictEqual(tape(12, "in"), '12"');
 assert.strictEqual(tape(1.61, "in"), '1 5/8"');
 assert.strictEqual(tape(0.4, "in"), '3/8"');
+assert.strictEqual(tape(3.22, "in"), '3 1/4"'); // no sixteenths: 3 3/16 rounds to 3 1/4
+assert.strictEqual(tape(0.69, "in"), '3/4"');
 assert.strictEqual(tape(7.99, "in"), '8"'); // rounds up across the whole inch
 assert.strictEqual(tape(147.6, "mm"), "148 mm");
 console.log("ok");
