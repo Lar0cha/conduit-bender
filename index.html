@@ -31,6 +31,8 @@
   select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
            background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 32px; }
   input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .check { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 16px; }
+  .check input { width: 22px; height: 22px; margin: 0; flex: none; appearance: auto; -webkit-appearance: checkbox; accent-color: var(--accent); }
   .row { display: flex; gap: 12px; } .row label { flex: 1; min-width: 0; }
   output { display: block; font-size: 19px; line-height: 1.75; }
   output b { color: var(--accent-text); font-size: 22px; }
@@ -87,6 +89,7 @@
 <label data-for="s4">Conduit end to obstacle start <input id="d4" type="number" inputmode="decimal" value="40"></label>
 <label data-for="s4">Obstacle length <input id="w" type="number" inputmode="decimal" value="10"></label>
 <label data-for="s3">Obstacle length (0 for a pipe) <input id="len3" type="number" inputmode="decimal" value="0" min="0"></label>
+<label data-for="s3" class="check"><input type="checkbox" id="round"> Round center to a whole number</label>
 <label data-for="s3">Center bend <select id="c3"><option value="45">45° center, 22.5° sides</option><option value="60">60° center, 30° sides</option></select></label>
 <label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
 <details><summary>What do these mean?</summary><dl id="help"></dl></details>
@@ -163,7 +166,8 @@
       ["Conduit end to obstacle center", "Measure along the run from the end of the conduit to the middle of the obstacle."],
       ["Obstacle length", "How long the obstacle is along the run. Use 0 for a round pipe."],
       ["Center bend", "45° center with 22.5° sides is the usual one. 60° with 30° sides is shorter and taller."],
-      ["Exact center to each side", "Distance from the exact (unrounded) center to each side mark (2-1/2\" per inch of height at 45°, 2\" at 60°)."],
+      ["Round center", "Off: all marks exact. On: only the center mark is rounded to a whole number; the side marks stay exact."],
+      ["Center to each side", "Distance from the exact center to each side mark (2-1/2\" per inch of height at 45°, 2\" at 60°)."],
       ["Shrink", "From your saddle table (3/16\" per inch at 45°, 1/4\" at 60°). It is already added to the center mark."], SIZE],
     s4: [
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top."],
@@ -180,7 +184,7 @@
     const bend = $("bend").value, u = $("unit").value, f = x => `<b>${tape(x, u)}</b>`;
     document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(bend));
     // Every visible number must be > 0 (or >= 0 for fields marked min="0").
-    const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")]
+    const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input[type=number]")]
       .some(i => !(parseFloat(i.value) > 0 || (i.min === "0" && parseFloat(i.value) === 0)));
     $("pic").innerHTML = $("steps").innerHTML = "";
     $("help").innerHTML = HELP[bend].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
@@ -232,11 +236,12 @@
     } else if (bend === "s3") {
       const ca = num("c3"), sa = ca / 2;
       r = saddle3(num("h"), num("d3"), num("len3"), ca);
-      // Only the center mark is rounded to a whole number; side marks stay exact.
-      r = { ...r, side: r.last - r.center, center: Math.round(r.center) };
+      // Optional: round only the center mark to a whole number; side marks stay exact.
+      const rounded = $("round").checked;
+      r = { ...r, side: r.last - r.center, center: rounded ? Math.round(r.center) : r.center };
       $("out").innerHTML = r.first > 0
         ? `Side mark: ${f(r.first)} (${sa}°)<br>Center: ${f(r.center)} (${ca}°)<br>Side mark: ${f(r.last)} (${sa}°)`
-          + `<br>Exact center to each side: ${f(r.side)}<br>Shrink (added to center): ${f(r.shrink)}`
+          + `<br>${rounded ? "Exact center" : "Center"} to each side: ${f(r.side)}<br>Shrink (added to center): ${f(r.shrink)}`
           + (num("len3") > 0 ? `<br><small>Center raised to ${tape(r.height, u)} to clear the ends</small>` : "")
         : "Obstacle is too close to the conduit end for this height.";
       if (r.first > 0) {
@@ -245,7 +250,9 @@
           [[0, 0], [r.first, 0], [peak, r.height], [peak + run, 0], [r.last * 1.15 - 2 * r.shrink, 0]],
           [d - half, d + half, num("h")]);
         steps([
-          `Mark the side marks at ${t(r.first)} and ${t(r.last)}, and the center at ${t(r.center)}.`,
+          rounded
+            ? `Mark the side marks at ${t(r.first)} and ${t(r.last)}, and the center at ${t(r.center)}.`
+            : `Mark the center at ${t(r.center)}, then measure <b>${t(r.side)} each way</b> for the side marks (${t(r.first)} and ${t(r.last)}).`,
           `Put the <b>center mark on the notch</b> (teardrop / saddle mark) of the bender. Bend to <b>${ca}°</b>.`,
           `<b>Roll the conduit 180°</b> so the hump points down.`,
           `<b>Arrow on the ${t(r.last)} side mark</b>, bend to ${sa}°.`,
@@ -301,6 +308,9 @@
     $(id).addEventListener("change", () => { try { localStorage.setItem(key, $(id).value); } catch {} });
   };
   remember("size", "size"); remember("pick", "table");
+  try { $("round").checked = localStorage.getItem("round") === "1"; } catch {}
+  $("round").addEventListener("change", render);
+  $("round").addEventListener("change", () => { try { localStorage.setItem("round", $("round").checked ? "1" : "0"); } catch {} });
   // Show the picked table; highlight the chosen conduit size in the take-up and fill tables.
   function showTables() {
     document.querySelectorAll("[data-table]").forEach(el => el.hidden = el.dataset.table !== $("pick").value);
