@@ -16,6 +16,7 @@
   [hidden] { display: none !important; }
   details { margin-top: 16px; } summary { color: #1a5fb4; cursor: pointer; }
   dt { font-weight: bold; margin-top: 10px; } dd { margin: 2px 0 0; font-size: 16px; }
+  details img { width: 100%; margin-top: 12px; }
   .row { display: flex; gap: 12px; } .row label { flex: 1; }
 </style>
 </head>
@@ -34,7 +35,7 @@
 <!-- data-for lists the bends that use each field -->
 <label data-for="offset s3 s4">Height <input id="h" type="number" inputmode="decimal" value="6"></label>
 <label data-for="stub">Stub height <input id="stubH" type="number" inputmode="decimal" value="12"></label>
-<label data-for="stub">Conduit size <select id="size"><option>1/2" EMT</option><option selected>3/4" EMT</option><option>1" EMT</option><option>1-1/4" EMT</option><option>1/2" rigid</option><option>3/4" rigid</option><option>1" rigid</option></select></label>
+<label data-for="offset stub b2b s3 s4">Conduit size <select id="size"><option>1/2" EMT</option><option selected>3/4" EMT</option><option>1" EMT</option><option>1-1/4" EMT</option><option>1/2" rigid</option><option>3/4" rigid</option><option>1" rigid</option></select></label>
 <label data-for="b2b">Outside-to-outside length <input id="len" type="number" inputmode="decimal" value="48"></label>
 <label data-for="s3">Conduit end to obstacle center <input id="d3" type="number" inputmode="decimal" value="30"></label>
 <label data-for="s4">Conduit end to obstacle start <input id="d4" type="number" inputmode="decimal" value="40"></label>
@@ -46,6 +47,11 @@
 <output id="out"></output>
 <svg id="pic" viewBox="0 0 400 250" width="100%" role="img" aria-label="Drawing of the marks and the finished bend"></svg>
 <div id="steps"></div>
+<details><summary>Reference tables</summary>
+  <img src="reference-tables/1-compensacion-curva-90.jpg" alt="90° take-up table: 1/2 EMT 5 in, 3/4 EMT and 1/2 rigid 6 in, 1 EMT and 3/4 rigid 8 in, 1-1/4 EMT and 1 rigid 11 in">
+  <img src="reference-tables/2-formulas-offsets.jpg" alt="Offset table: multiplier and shrink per inch for 10, 22.5, 30, 45 and 60 degrees">
+  <img src="reference-tables/3-formulas-saddle-3-curvas.jpg" alt="3-point saddle table: shrink and distance to side marks for 45 and 60 degree center bends">
+</details>
 <script src="bend.js"></script>
 <script>
   const $ = id => document.getElementById(id);
@@ -70,30 +76,31 @@
        ${dim ? `<path d="M${X(dim[0]) - 5} ${Y(0)}h10M${X(dim[0])} ${Y(0)}V${Y(dim[1])}M${X(dim[0]) - 5} ${Y(dim[1])}h10" stroke="#1a5fb4" stroke-width="1.5"/>
          <text x="${X(dim[0]) + 8}" y="${(Y(0) + Y(dim[1])) / 2 + 5}" font-size="15" fill="#1a5fb4">${dim[2]}</text>` : ""}`;
   }
+  const SIZE = ["Conduit size", "Pick the pipe you are bending. Offsets and saddles use the same table numbers for every size; only the 90° take-up changes."];
   const SHRINK = ["Shrink", "How much shorter the conduit ends up after bending, because it goes up and over instead of straight."];
   const HELP = {
     offset: [
       ["Height", "How far the conduit has to move over, e.g. to go from the wall onto a box. Measure from the bottom of the conduit before to the bottom after."],
       ["Angle", "The angle of both bends. 30° is the most common. Smaller angles make a longer, gentler offset; bigger angles make it shorter and harder to pull wire."],
-      ["Marks apart", "Distance between the two marks on the conduit."], SHRINK],
+      ["Marks apart", "Distance between the two marks on the conduit."], SHRINK, SIZE],
     stub: [
       ["Stub height", "How tall the conduit stands after the 90: from the floor (the back of the bend) up to the end of the conduit."],
       ["Conduit size", "Picks the take-up from your 90° table (EMT or rigid)."],
       ["Take-up", "How much length the bend uses up. You mark at stub height minus take-up. Check the number stamped on your bender."]],
     b2b: [
-      ["Outside-to-outside length", "From the outside (back) of the first 90 to the outside of the second 90, e.g. the width of the box or wall you need to wrap."]],
+      ["Outside-to-outside length", "From the outside (back) of the first 90 to the outside of the second 90, e.g. the width of the box or wall you need to wrap."], SIZE],
     s3: [
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top of the obstacle."],
       ["Conduit end to obstacle center", "Measure along the run from the end of the conduit to the middle of the obstacle."],
       ["Obstacle length", "How long the obstacle is along the run. Use 0 for a round pipe."],
       ["Center bend", "45° center with 22.5° sides is the usual one. 60° with 30° sides is shorter and taller."],
       ["Center to each side", "Distance from the center mark to each side mark (2-1/2\" per inch of height at 45°, 2\" at 60°)."],
-      ["Shrink", "From your saddle table (3/16\" per inch at 45°, 1/4\" at 60°). It is already added to the center mark."]],
+      ["Shrink", "From your saddle table (3/16\" per inch at 45°, 1/4\" at 60°). It is already added to the center mark."], SIZE],
     s4: [
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top."],
       ["Conduit end to obstacle start", "Measure along the run from the end of the conduit to the near edge of the obstacle."],
       ["Obstacle length", "How long the obstacle is along the run (near edge to far edge)."],
-      ["Angle", "Angle of all four bends. 30° is the most common."], SHRINK],
+      ["Angle", "Angle of all four bends. 30° is the most common."], SHRINK, SIZE],
   };
   // Bender marks differ by brand: arrow = start of bend, star = back of 90, notch/teardrop = saddle center.
   function steps(list) {
