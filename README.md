@@ -4,10 +4,10 @@ Personal iPhone app that does the math for bending electrical conduit (EMT) with
 
 ## Version 1 covers
 - [x] Offset: height + angle → distance between marks, shrink
-- [ ] 90° stub-up: stub height → mark (minus take-up)
-- [ ] Back-to-back 90: second mark from the first
-- [ ] 3-point saddle: obstacle height → center mark, side marks, shrink
-- [ ] 4-point saddle: two offsets → four marks
+- [x] 90° stub-up: stub height → mark (minus take-up)
+- [x] Back-to-back 90: second mark from the first
+- [x] 3-point saddle: obstacle height → center mark, side marks, shrink
+- [x] 4-point saddle: two offsets → four marks
 - [x] Inches / mm switch (the math is unit-agnostic)
 
 ## Run
@@ -25,6 +25,10 @@ On the PC: open `index.html` in a browser. Tests: `node bend.test.js`.
 - `manifest.json`, `icon.png` — home-screen name and icon
 - `sw.js` — offline cache
 
+## Notes
+- Take-up uses common EMT values (1/2" = 5", 3/4" = 6", 1" = 8"). Change `TAKE_UP` in `bend.js` if your bender is stamped differently.
+- Saddles use exact geometry, so side marks come out a bit wider than the 2.5× field rule (2.61×).
+- Live at https://lar0cha.github.io/conduit-bender/
+
 ## Open questions
-- Take-up (deduct) depends on your bender and conduit size (common EMT: 1/2" = 5", 3/4" = 6", 1" = 8"). Which bender do you use?
 - Show results as decimals or as fractions (1/16")?

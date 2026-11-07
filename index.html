@@ -12,25 +12,68 @@
   body { font: 18px system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; }
   label { display: block; margin: 12px 0 4px; }
   input, select { font-size: 20px; width: 100%; padding: 6px; box-sizing: border-box; }
-  output { display: block; margin-top: 16px; font-size: 22px; }
+  output { display: block; margin-top: 16px; font-size: 22px; line-height: 1.5; }
+  [hidden] { display: none !important; }
+  .row { display: flex; gap: 12px; } .row label { flex: 1; }
 </style>
 </head>
 <body>
-<h1>Offset</h1>
-<label>Units <select id="unit"><option>in</option><option>mm</option></select></label>
-<label>Offset height <input id="h" type="number" inputmode="decimal" value="6"></label>
-<label>Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
+<h1>Conduit Bender</h1>
+<div class="row">
+  <label>Bend <select id="bend">
+    <option value="offset">Offset</option>
+    <option value="stub">90° stub-up</option>
+    <option value="b2b">Back-to-back 90</option>
+    <option value="s3">3-point saddle</option>
+    <option value="s4">4-point saddle</option>
+  </select></label>
+  <label>Units <select id="unit"><option>in</option><option>mm</option></select></label>
+</div>
+<!-- data-for lists the bends that use each field -->
+<label data-for="offset s3 s4">Height <input id="h" type="number" inputmode="decimal" value="6"></label>
+<label data-for="stub">Stub height <input id="stubH" type="number" inputmode="decimal" value="12"></label>
+<label data-for="stub">Conduit size (EMT) <select id="size"><option>1/2"</option><option>3/4"</option><option>1"</option></select></label>
+<label data-for="b2b">Outside-to-outside length <input id="len" type="number" inputmode="decimal" value="48"></label>
+<label data-for="s3">Conduit end to obstacle center <input id="d3" type="number" inputmode="decimal" value="30"></label>
+<label data-for="s4">Conduit end to obstacle start <input id="d4" type="number" inputmode="decimal" value="40"></label>
+<label data-for="s4">Obstacle width <input id="w" type="number" inputmode="decimal" value="10"></label>
+<label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
 <output id="out"></output>
 <script src="bend.js"></script>
 <script>
   const $ = id => document.getElementById(id);
+  const num = id => parseFloat($(id).value);
   function render() {
-    const h = parseFloat($("h").value), u = $("unit").value;
-    if (!(h > 0)) { $("out").textContent = "Enter a height above 0."; return; }
-    const r = offset(h, parseFloat($("a").value));
-    $("out").innerHTML = `Marks apart: <b>${r.distance.toFixed(2)} ${u}</b><br>Shrink: <b>${r.shrink.toFixed(2)} ${u}</b>`;
+    const bend = $("bend").value, u = $("unit").value, f = x => `<b>${x.toFixed(2)} ${u}</b>`;
+    document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(bend));
+    // Every visible number must be > 0.
+    const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")].some(i => !(parseFloat(i.value) > 0));
+    if (bad) { $("out").textContent = "Enter numbers above 0."; return; }
+    let r;
+    if (bend === "offset") {
+      r = offset(num("h"), num("a"));
+      $("out").innerHTML = `Marks apart: ${f(r.distance)}<br>Shrink: ${f(r.shrink)}`;
+    } else if (bend === "stub") {
+      r = stub90(num("stubH"), $("size").value, u);
+      $("out").innerHTML = r.mark > 0
+        ? `Mark from end: ${f(r.mark)}<br>Arrow on the mark.<br><small>Take-up ${TAKE_UP[u][$("size").value]} ${u}</small>`
+        : "Stub is shorter than the take-up for this size.";
+    } else if (bend === "b2b") {
+      r = backToBack(num("len"));
+      $("out").innerHTML = `Mark from back of first 90: ${f(r.mark)}<br>Star on the mark, bender facing the other way.`;
+    } else if (bend === "s3") {
+      r = saddle3(num("h"), num("d3"));
+      $("out").innerHTML = r.first > 0
+        ? `Side mark: ${f(r.first)} (22.5°)<br>Center: ${f(r.center)} (45°)<br>Side mark: ${f(r.last)} (22.5°)<br>Shrink: ${f(r.shrink)}`
+        : "Obstacle is too close to the conduit end for this height.";
+    } else {
+      r = saddle4(num("h"), num("w"), num("d4"), num("a"));
+      $("out").innerHTML = r.marks[0] > 0
+        ? r.marks.map((m, i) => `Mark ${i + 1}: ${f(m)}`).join("<br>") + `<br>All at ${$("a").value}°. Shrink: ${f(r.shrink)}`
+        : "Obstacle is too close to the conduit end for this height.";
+    }
   }
-  ["h", "a", "unit"].forEach(id => $(id).addEventListener("input", render));
+  document.querySelectorAll("input, select").forEach(el => el.addEventListener("input", render));
   render();
   // Offline support; only runs over https (or localhost), so not when opened as a file.
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
