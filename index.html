@@ -163,7 +163,7 @@
       ["Conduit end to obstacle center", "Measure along the run from the end of the conduit to the middle of the obstacle."],
       ["Obstacle length", "How long the obstacle is along the run. Use 0 for a round pipe."],
       ["Center bend", "45° center with 22.5° sides is the usual one. 60° with 30° sides is shorter and taller."],
-      ["Center to each side", "Distance from the center mark to each side mark (2-1/2\" per inch of height at 45°, 2\" at 60°)."],
+      ["Exact center to each side", "Distance from the exact (unrounded) center to each side mark (2-1/2\" per inch of height at 45°, 2\" at 60°)."],
       ["Shrink", "From your saddle table (3/16\" per inch at 45°, 1/4\" at 60°). It is already added to the center mark."], SIZE],
     s4: [
       ["Height", "How tall the obstacle is: from the surface the conduit lies on to the top."],
@@ -232,12 +232,11 @@
     } else if (bend === "s3") {
       const ca = num("c3"), sa = ca / 2;
       r = saddle3(num("h"), num("d3"), num("len3"), ca);
-      // Center on a whole number for easy marking; side marks stay the same distance from it.
-      const c = Math.round(r.center);
-      r = { ...r, first: r.first + c - r.center, last: r.last + c - r.center, center: c };
+      // Only the center mark is rounded to a whole number; side marks stay exact.
+      r = { ...r, side: r.last - r.center, center: Math.round(r.center) };
       $("out").innerHTML = r.first > 0
         ? `Side mark: ${f(r.first)} (${sa}°)<br>Center: ${f(r.center)} (${ca}°)<br>Side mark: ${f(r.last)} (${sa}°)`
-          + `<br>Center to each side: ${f(r.last - r.center)}<br>Shrink (added to center): ${f(r.shrink)}`
+          + `<br>Exact center to each side: ${f(r.side)}<br>Shrink (added to center): ${f(r.shrink)}`
           + (num("len3") > 0 ? `<br><small>Center raised to ${tape(r.height, u)} to clear the ends</small>` : "")
         : "Obstacle is too close to the conduit end for this height.";
       if (r.first > 0) {
@@ -246,7 +245,7 @@
           [[0, 0], [r.first, 0], [peak, r.height], [peak + run, 0], [r.last * 1.15 - 2 * r.shrink, 0]],
           [d - half, d + half, num("h")]);
         steps([
-          `Mark the center at ${t(r.center)}, then measure <b>${t(r.last - r.center)} each way</b> from it for the side marks (${t(r.first)} and ${t(r.last)}).`,
+          `Mark the side marks at ${t(r.first)} and ${t(r.last)}, and the center at ${t(r.center)}.`,
           `Put the <b>center mark on the notch</b> (teardrop / saddle mark) of the bender. Bend to <b>${ca}°</b>.`,
           `<b>Roll the conduit 180°</b> so the hump points down.`,
           `<b>Arrow on the ${t(r.last)} side mark</b>, bend to ${sa}°.`,
