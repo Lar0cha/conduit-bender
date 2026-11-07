@@ -40,29 +40,57 @@
 <label data-for="s3">Obstacle length (0 for a pipe) <input id="len3" type="number" inputmode="decimal" value="0" min="0"></label>
 <label data-for="offset s4">Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
 <output id="out"></output>
+<svg id="pic" viewBox="0 0 400 250" width="100%" role="img" aria-label="Drawing of the marks and the finished bend"></svg>
 <script src="bend.js"></script>
 <script>
   const $ = id => document.getElementById(id);
   const num = id => parseFloat($(id).value);
+  const tan = deg => Math.tan(deg * Math.PI / 180);
+  // Top: straight conduit with marks. Bottom: bent shape, drawn to scale (true angles).
+  // marks: [[position, label]], shape: [[x, height]], box: obstacle [x0, x1, height] or null.
+  function draw(len, marks, shape, box) {
+    const maxX = Math.max(len, ...shape.map(p => p[0])), maxY = Math.max(...shape.map(p => p[1]));
+    const s = Math.min(370 / maxX, 120 / maxY), X = x => 15 + x * s, Y = y => 228 - y * s;
+    const pipe = 'stroke="#888" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+    $("pic").innerHTML =
+      `<text x="15" y="16" font-size="15" fill="#555">Mark the straight conduit</text>
+       <line x1="15" y1="52" x2="${X(len)}" y2="52" ${pipe}/>
+       ${marks.map(([m, t]) => `<line x1="${X(m)}" y1="40" x2="${X(m)}" y2="64" stroke="#c76b00" stroke-width="2"/>
+         <text x="${X(m)}" y="34" font-size="15" text-anchor="middle" font-weight="bold">${t}</text>`).join("")}
+       <text x="15" y="96" font-size="15" fill="#555">After bending</text>
+       <line x1="5" y1="${Y(0) + 4}" x2="395" y2="${Y(0) + 4}" stroke="#bbb" stroke-dasharray="4 4"/>
+       ${box ? `<rect x="${X(box[0])}" y="${Y(box[2]) + 2}" width="${(box[1] - box[0]) * s}" height="${box[2] * s + 2}" fill="#f2b8a2" stroke="#b5532c"/>` : ""}
+       <polyline points="${shape.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" ${pipe}/>`;
+  }
   function render() {
     const bend = $("bend").value, u = $("unit").value, f = x => `<b>${tape(x, u)}</b>`;
     document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(bend));
     // Every visible number must be > 0 (or >= 0 for fields marked min="0").
     const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")]
       .some(i => !(parseFloat(i.value) > 0 || (i.min === "0" && parseFloat(i.value) === 0)));
+    $("pic").innerHTML = "";
     if (bad) { $("out").textContent = "Enter numbers above 0."; return; }
+    const t = x => tape(x, u);
     let r;
     if (bend === "offset") {
-      r = offset(num("h"), num("a"));
+      const h = num("h"), run = h / tan(num("a"));
+      r = offset(h, num("a"));
       $("out").innerHTML = `Marks apart: ${f(r.distance)}<br>Shrink: ${f(r.shrink)}`;
+      // No fixed start for an offset, so the drawing puts the first mark one spacing in.
+      const d = r.distance;
+      draw(3 * d, [[d, "Mark 1"], [2 * d, "Mark 2"]], [[0, 0], [d, 0], [d + run, h], [2 * d + run, h]], null);
     } else if (bend === "stub") {
-      r = stub90(num("stubH"), $("size").value, u);
+      const h = num("stubH");
+      r = stub90(h, $("size").value, u);
       $("out").innerHTML = r.mark > 0
         ? `Mark from end: ${f(r.mark)}<br>Arrow on the mark.<br><small>Take-up ${TAKE_UP[u][$("size").value]} ${u}</small>`
         : "Stub is shorter than the take-up for this size.";
+      if (r.mark > 0) draw(2.5 * h, [[0, "End"], [r.mark, t(r.mark)]], [[0, h], [0, 0], [1.5 * h, 0]], null);
     } else if (bend === "b2b") {
-      r = backToBack(num("len"));
+      const L = num("len"), lead = L / 4;
+      r = backToBack(L);
       $("out").innerHTML = `Mark from back of first 90: ${f(r.mark)}<br>Star on the mark, bender facing the other way.`;
+      draw(L + 2 * lead, [[lead, "1st 90"], [lead + L, t(L)]], [[0, lead], [0, 0], [L, 0], [L, lead]], null);
     } else if (bend === "s3") {
       r = saddle3(num("h"), num("d3"), num("len3"));
       // Center on a whole number for easy marking; side marks stay the same distance from it.
@@ -72,11 +100,22 @@
         ? `Side mark: ${f(r.first)} (22.5°)<br>Center: ${f(r.center)} (45°)<br>Side mark: ${f(r.last)} (22.5°)<br>Shrink: ${f(r.shrink)}`
           + (num("len3") > 0 ? `<br><small>Center raised to ${tape(r.height, u)} to clear the ends</small>` : "")
         : "Obstacle is too close to the conduit end for this height.";
+      if (r.first > 0) {
+        const run = r.height / tan(22.5), peak = r.first + run, d = num("d3"), half = Math.max(num("len3"), num("h") / 6) / 2;
+        draw(r.last * 1.15, [[r.first, t(r.first)], [r.center, t(r.center)], [r.last, t(r.last)]],
+          [[0, 0], [r.first, 0], [peak, r.height], [peak + run, 0], [r.last * 1.15 - r.shrink, 0]],
+          [d - half, d + half, num("h")]);
+      }
     } else {
-      r = saddle4(num("h"), num("w"), num("d4"), num("a"));
+      const h = num("h"), w = num("w"), d = num("d4"), run = h / tan(num("a"));
+      r = saddle4(h, w, d, num("a"));
       $("out").innerHTML = r.marks[0] > 0
         ? r.marks.map((m, i) => `Mark ${i + 1}: ${f(m)}`).join("<br>") + `<br>All at ${$("a").value}°. Shrink: ${f(r.shrink)}`
         : "Obstacle is too close to the conduit end for this height.";
+      const m = r.marks, end = m[3] * 1.15;
+      if (m[0] > 0) draw(end, m.map((x, i) => [x, String(i + 1)]),
+        [[0, 0], [m[0], 0], [m[0] + run, h], [m[0] + run + w, h], [m[0] + 2 * run + w, 0], [end - r.shrink, 0]],
+        [d, d + w, h]);
     }
   }
   document.querySelectorAll("input, select").forEach(el => el.addEventListener("input", render));
