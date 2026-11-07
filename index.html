@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conduit Bender</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bender">
+<style>
+  body { font: 18px system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; }
+  label { display: block; margin: 12px 0 4px; }
+  input, select { font-size: 20px; width: 100%; padding: 6px; box-sizing: border-box; }
+  output { display: block; margin-top: 16px; font-size: 22px; }
+</style>
+</head>
+<body>
+<h1>Offset</h1>
+<label>Units <select id="unit"><option>in</option><option>mm</option></select></label>
+<label>Offset height <input id="h" type="number" inputmode="decimal" value="6"></label>
+<label>Angle <select id="a"><option>10</option><option>22.5</option><option selected>30</option><option>45</option><option>60</option></select></label>
+<output id="out"></output>
+<script src="bend.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  function render() {
+    const h = parseFloat($("h").value), u = $("unit").value;
+    if (!(h > 0)) { $("out").textContent = "Enter a height above 0."; return; }
+    const r = offset(h, parseFloat($("a").value));
+    $("out").innerHTML = `Marks apart: <b>${r.distance.toFixed(2)} ${u}</b><br>Shrink: <b>${r.shrink.toFixed(2)} ${u}</b>`;
+  }
+  ["h", "a", "unit"].forEach(id => $(id).addEventListener("input", render));
+  render();
+  // Offline support; only runs over https (or localhost), so not when opened as a file.
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
