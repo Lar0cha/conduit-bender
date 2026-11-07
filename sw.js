@@ -1,6 +1,6 @@
 // Cache the app so it opens with no signal on the job site.
 // Bump the version when files change, or phones keep the old copy.
-const CACHE = "bender-v3";
+const CACHE = "bender-v4";
 const FILES = ["./", "index.html", "bend.js", "manifest.json", "icon.png"];
 
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))));

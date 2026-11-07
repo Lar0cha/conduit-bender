@@ -63,6 +63,9 @@
       $("out").innerHTML = `Mark from back of first 90: ${f(r.mark)}<br>Star on the mark, bender facing the other way.`;
     } else if (bend === "s3") {
       r = saddle3(num("h"), num("d3"));
+      // Center on a whole number for easy marking; side marks stay the same distance from it.
+      const c = Math.round(r.center);
+      r = { ...r, first: r.first + c - r.center, last: r.last + c - r.center, center: c };
       $("out").innerHTML = r.first > 0
         ? `Side mark: ${f(r.first)} (22.5°)<br>Center: ${f(r.center)} (45°)<br>Side mark: ${f(r.last)} (22.5°)<br>Shrink: ${f(r.shrink)}`
         : "Obstacle is too close to the conduit end for this height.";
