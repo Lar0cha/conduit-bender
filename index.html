@@ -44,7 +44,7 @@
   const $ = id => document.getElementById(id);
   const num = id => parseFloat($(id).value);
   function render() {
-    const bend = $("bend").value, u = $("unit").value, f = x => `<b>${x.toFixed(2)} ${u}</b>`;
+    const bend = $("bend").value, u = $("unit").value, f = x => `<b>${tape(x, u)}</b>`;
     document.querySelectorAll("[data-for]").forEach(el => el.hidden = !el.dataset.for.split(" ").includes(bend));
     // Every visible number must be > 0.
     const bad = [...document.querySelectorAll("[data-for]:not([hidden]) input")].some(i => !(parseFloat(i.value) > 0));

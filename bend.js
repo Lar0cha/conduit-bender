@@ -40,4 +40,13 @@ function saddle4(height, width, dist, angleDeg) {
   return { marks: [m2 - o.distance, m2, m2 + width, m2 + width + o.distance], shrink: 2 * o.shrink };
 }
 
-if (typeof module !== "undefined") module.exports = { TAKE_UP, offset, stub90, backToBack, saddle3, saddle4 };
+// Read like a tape: inches to the nearest 1/16" (29.61 → 29 5/8"), mm to the nearest whole mm.
+function tape(x, unit) {
+  if (unit === "mm") return `${Math.round(x)} mm`;
+  const sixteenths = Math.round(x * 16);
+  let whole = Math.floor(sixteenths / 16), num = sixteenths % 16, den = 16;
+  while (num && num % 2 === 0) { num /= 2; den /= 2; }
+  return num ? `${whole ? whole + " " : ""}${num}/${den}"` : `${whole}"`;
+}
+
+if (typeof module !== "undefined") module.exports = { TAKE_UP, offset, stub90, backToBack, saddle3, saddle4, tape };

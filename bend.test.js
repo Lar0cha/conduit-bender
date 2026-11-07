@@ -1,6 +1,6 @@
 // Run: node bend.test.js
 const assert = require("assert");
-const { offset, stub90, backToBack, saddle3, saddle4 } = require("./bend");
+const { offset, stub90, backToBack, saddle3, saddle4, tape } = require("./bend");
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 0.01, `${a} != ${b}`);
 const o = offset(6, 30); // 6" offset at 30°: marks 12" apart, shrink 1.5"
@@ -24,4 +24,10 @@ near(s4.marks[1] - s4.marks[0], 8);
 near(s4.marks[2] - s4.marks[1], 10);
 near(s4.marks[1], 40 + offset(4, 30).shrink);
 near(s4.shrink, 2 * offset(4, 30).shrink);
+assert.strictEqual(tape(29.61, "in"), '29 5/8"');
+assert.strictEqual(tape(12, "in"), '12"');
+assert.strictEqual(tape(1.61, "in"), '1 5/8"');
+assert.strictEqual(tape(0.4, "in"), '3/8"');
+assert.strictEqual(tape(7.99, "in"), '8"'); // rounds up across the whole inch
+assert.strictEqual(tape(147.6, "mm"), "148 mm");
 console.log("ok");
