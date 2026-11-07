@@ -16,7 +16,7 @@ On the PC: open `index.html` in a browser. Tests: `node bend.test.js`.
 ## Put it on the iPhone
 1. Host the folder on https (e.g. GitHub Pages, free). Offline mode only works over https.
 2. On the iPhone, open the link in **Safari** → Share → **Add to Home Screen**.
-3. After changing files, bump `CACHE` in `sw.js` so the phone picks up the new version.
+3. With signal the app always loads the latest version; without signal it uses the last copy it saw.
 
 ## Files
 - `bend.js` — all bend math, no UI
